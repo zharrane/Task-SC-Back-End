@@ -2,9 +2,11 @@ const Users = require("../dummy/users")
 const { helpers } = require("../helpers")
 
 exports.signin = (req, res) => {
+  const { headers } = req.headers
+  if (!headers) res.status(404).send({ message: "Missing headers" })
   const { username, password } = req.body
   if (!username || !password)
-    res.status(404).send({ message: "No sign in credentials" })
+    res.status(404).send({ message: "Missing credentials" })
   const user = helpers.findOneByUsername(Users, username)
   try {
     if (!user) return res.status(404).send({ message: "User Not found." })
