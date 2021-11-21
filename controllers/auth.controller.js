@@ -3,6 +3,8 @@ const { helpers } = require("../helpers")
 
 exports.signin = (req, res) => {
   const { username, password } = req.body
+  if (!username || !password)
+    res.status(404).send({ message: "No sign in credentials" })
   const user = helpers.findOneByUsername(Users, username)
   try {
     if (!user) return res.status(404).send({ message: "User Not found." })
