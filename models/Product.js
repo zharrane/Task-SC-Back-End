@@ -22,7 +22,7 @@ const ProductSchenma = new Schema({
       },
     },
   ],
-  createdAt: {
+  createdOn: {
     type: Date,
     default: Date.now,
   },
@@ -37,14 +37,32 @@ const ProductSchenma = new Schema({
   lastBidPrice: {
     type: Number,
   },
+  productPrice: {
+    type: Number,
+    require: true,
+  },
   winner: {
     type: String,
   },
-
+  bids: [
+    {
+      userId: {
+        type: String,
+      },
+      bid: {
+        type: Number,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   subscribers: [
     {
       userId: {
         type: String,
+        unique: true,
       },
     },
   ],

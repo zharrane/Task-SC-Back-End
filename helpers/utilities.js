@@ -2,6 +2,9 @@
 const findOneByUsername = (array, element) => {
   return array.find((e) => e.username === element)
 }
+const findOneById = (array, element) => {
+  return array.find((e) => e.id === element)
+}
 
 const filterUsers = (array) => {
   return array.map((element) => {
@@ -14,4 +17,4 @@ const filterUser = (array, element) => {
   return filterUsers(array).find((e) => e.username === element)
 }
 
-module.exports = { findOneByUsername, filterUsers, filterUser }
+module.exports = { findOneByUsername, filterUsers, filterUser, findOneById }

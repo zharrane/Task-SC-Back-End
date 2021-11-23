@@ -5,10 +5,10 @@ module.exports = (app) => {
   var router = require("express").Router()
 
   /** Get auto bid settings  */
-  router.get("/:username", [authJwt], autoBid.findOne)
+  router.get("/", [authJwt], autoBid.findOne)
 
   /** Create   */
-  router.post("/:username", [authJwt], autoBid.findOneAndUpate)
+  router.post("/", [authJwt], autoBid.findOneAndUpate)
 
   app.use("/api/users/autobid", router)
 }

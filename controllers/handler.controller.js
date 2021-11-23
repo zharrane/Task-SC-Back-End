@@ -1,13 +1,14 @@
 const Users = require("../dummy/users")
 const { helpers } = require("../helpers")
+const Category = require("../models/Category")
 
 const findProduct = async (Model, id) => {
   try {
     const result = await Model.findById({ _id: id })
     if (result) return result
-    else return {}
+    else return null
   } catch (e) {
-    return {}
+    return null
   }
 }
 
@@ -39,30 +40,48 @@ exports.findAutoBid = async (Model, req, res) => {
   }
 }
 
-/**update Product */
+/**
+ * Update Product
+ *  Add bid
+ */
 exports.findProductAndUpdate = async (Model, req, res) => {
+  const { uid } = req
+  const userId = uid.toString()
   const { product } = req.params
-  const { subscribers, lastBidPrice, winner } = req.body
+  const { lastBidPrice } = req.body
 
-  if (!subscribers || !lastBidPrice || !winner)
-    return res.json({ message: "Missing details" })
+  const user = helpers.findOneById(Users, userId)
+
+  if (!lastBidPrice) return res.json({ message: "Missing details" })
+
+  if (!user) {
+    return res.json({ message: "This user does not exist at all" })
+  }
 
   try {
     const tempResult = await findProduct(Model, product)
-    if (tempResult) {
-      if (lastBidPrice < tempResult.lastBidPrice)
-        return res.json({ message: "Cannot bid low or equal to current bid" })
-      if (helpers.findOneByUsername(Users, winner).length)
-        return res.json({ message: "Winner does not exist in users list" })
+
+    if (!tempResult) {
+      return res.status(404).json({ message: "Product not found" })
+    } else {
+      if (lastBidPrice <= tempResult["lastBidPrice"]) {
+        return res
+          .status(404)
+          .json({ message: "Cannot bid low or equal to current bid" })
+      }
     }
+    let bids = tempResult.bids
+    bids = [...bids, { userId, bid: lastBidPrice }]
     const result = await Model.findByIdAndUpdate(
       { _id: product },
+
       {
-        subscribers,
         lastBidPrice,
-        winner,
+        productPrice: lastBidPrice,
+        bids,
       }
     )
+
     if (!result) return res.status(404).json({ message: "Product not found" })
     return res.json(result)
   } catch (error) {
@@ -72,59 +91,134 @@ exports.findProductAndUpdate = async (Model, req, res) => {
   }
 }
 
-/**Create or update Auto bid */
-exports.findAutoBidAndUpdate = async (Model, req, res) => {
-  const { username } = req.params
-  const { autoBidAmount, notification } = req.body
-  const options = { upsert: true, new: true, setDefaultsOnInsert: true }
-  const update = { expire: new Date() }
+/**
+ * Update Product
+ * Add Subscriber
+ */
+exports.findProductAndUpdateSubscribers = async (Model, req, res) => {
+  const { uid } = req
+  const userId = uid.toString()
+  const { product } = req.params
+
+  const user = helpers.findOneById(Users, userId)
+  if (!user) {
+    return res.json({ message: "This user does not exist at all" })
+  }
 
   try {
-    const result = await Model.findOneAndUpdate(
-      { userId: username, autoBidAmount, notification },
-      update,
-      options
+    const tempResult = await findProduct(Model, product)
+    const newSubscribers = []
+    if (!tempResult) {
+      return res.status(404).json({ message: "Product not found" })
+    }
+
+    const subscribers = tempResult.subscribers.map((item) => item.userId)
+    let includes = subscribers.includes(uid)
+
+    if (includes)
+      return res.status(400).json({ message: "user is already subscribed" })
+
+    newSubscribers.push({ userId: uid })
+    const result = await Model.findByIdAndUpdate(
+      { _id: product },
+
+      {
+        subscribers: newSubscribers,
+      }
     )
-    if (!result) return res.status(404).json({ message: "No Auto bid found" })
+
+    if (!result) return res.status(404).json({ message: "Product not found" })
     return res.json(result)
   } catch (error) {
+    if (error.kind === "ObjectId")
+      return res.status(404).json({ message: "Product not found" })
     return res.status(500).json({ message: "Server Error" })
   }
 }
 
 /** Get all Datas */
 exports.findAllProducts = async (Model, req, res) => {
+  const { categories, minimumPrice } = req.body
   const { page, limit } = req.query
 
-  const lim = parseInt(limit)
-  const pg = parseInt(page)
-
+  const lim = limit ? +limit : 15
+  const pg = page ? +page : 1
   const startIndex = (pg - 1) * lim
-  const endIndex = pg * lim
+  const skip = pg > 0 ? startIndex : 0
+  const minimum = minimumPrice ? minimumPrice : 0
 
   try {
-    //const products = await Model.find().limit().sort({ date: -1 })
-    const preProducts = await Model.find().sort({ date: -1 })
-    /**Prepare to send */
-    const products = preProducts.slice(startIndex, endIndex)
+    let categoryList = await Category.find()
 
-    const Totalepages = Math.ceil(preProducts.length / lim)
+    let includes = categories && false
+
+    /** Get categories Ids */
+    categoryList = categoryList.map((item) => {
+      return item.id
+    })
+    /** Get categories Ids */
+
+    if (categories) {
+      includes = categories.every((item) => categoryList.includes(item))
+    }
+    if (categories && !includes)
+      return res
+        .status(404)
+        .json({ message: "One of the category is not valid" })
+
+    categoryList = categories && includes ? categories : categoryList
+    console.log(categoryList)
+
+    let products = await Model.where({
+      productPrice: {
+        $gte: minimum,
+      },
+      category: {
+        $in: categoryList,
+      },
+    })
+      .sort()
+      .skip(skip)
+      .limit(lim)
+
+    /**Prepare to send */
     const Counts = products.length
-    const ScannedCounts = preProducts.length
+    const ScannedCounts = products.length
     let result = {
-      Totalepages,
       Limit: lim,
       Counts,
       ScannedCounts,
       Items: products,
     }
-    if (pg > Totalepages) {
+    if (ScannedCounts === 0) {
       result = { Exceeded: true, Page: pg, ...result }
     } else {
       result = { Page: pg, ...result }
     }
     /**Send */
     if (products) return res.json(result)
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ message: "Server Error" })
+  }
+}
+
+/**Create or update Auto bid */
+exports.findAutoBidAndUpdate = async (Model, req, res) => {
+  const { uid } = req
+  const userId = uid.toString()
+  const { autoBidAmount, notification } = req.body
+  const options = { upsert: true, new: true, setDefaultsOnInsert: true }
+  const update = { expire: new Date() }
+
+  try {
+    const result = await Model.findOneAndUpdate(
+      { userId, autoBidAmount, notification },
+      update,
+      options
+    )
+    if (!result) return res.status(404).json({ message: "No Auto bid found" })
+    return res.json(result)
   } catch (error) {
     return res.status(500).json({ message: "Server Error" })
   }
@@ -147,7 +241,7 @@ exports.findAllCategories = async (Model, req, res) => {
 exports.putIProductItem = async (Model, req, res) => {
   const { title, description, category, duration, bidStartPrice, pictures } =
     req.body
-
+  console.log(bidStartPrice)
   if (
     !title ||
     !description ||
@@ -164,11 +258,14 @@ exports.putIProductItem = async (Model, req, res) => {
       category,
       duration,
       bidStartPrice,
+      productPrice: bidStartPrice,
       pictures,
     })
     const product = await newProduct.save()
+    console.log(product)
     return res.json({ product })
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }

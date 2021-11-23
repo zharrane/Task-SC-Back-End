@@ -5,7 +5,12 @@ require("dotenv").config()
 
 /**To Export */
 const { hashPassword, checkPassword } = require("./passwordManagement")
-const { findOneByUsername, filterUsers, filterUser } = require("./utilities")
+const {
+  findOneByUsername,
+  filterUsers,
+  filterUser,
+  findOneById,
+} = require("./utilities")
 
 const CONSTS = {
   JWT_SECRET: process.env.JWT_SECRET,
@@ -40,5 +45,6 @@ const helpers = {
   connectToDatabase,
   filterUsers,
   filterUser,
+  findOneById,
 }
 module.exports = { helpers }

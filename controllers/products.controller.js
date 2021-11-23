@@ -1,7 +1,6 @@
 const Products = require("../models/Product")
 const Category = require("../models/Category")
 const handler = require("./handler.controller")
-const Product = require("../models/Product")
 
 /** Products */
 exports.findAllProducts = (req, res) => {
@@ -13,6 +12,12 @@ exports.findOne = (req, res) => {
 }
 exports.findOneAndUpate = (req, res) => {
   handler.findProductAndUpdate(Products, req, res)
+}
+exports.findProductAndUpdateSubscribers = (req, res) => {
+  handler.findProductAndUpdateSubscribers(Products, req, res)
+}
+exports.findProductAndDeleteSubscriber = (req, res) => {
+  handler.findProductAndDeleteSubscriber(Products, req, res)
 }
 
 /** Categories */

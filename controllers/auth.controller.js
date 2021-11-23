@@ -20,11 +20,11 @@ exports.signin = (req, res) => {
         message: "Invalid Password!",
       })
 
-    const token = helpers.generateToken({ id: user.id })
+    const token = helpers.generateToken({ uid: user.id })
     /** */
 
     res.status(200).send({
-      id: user.id,
+      uid: user.id,
       username: user.username,
       accessToken: token,
     })

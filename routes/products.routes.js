@@ -9,7 +9,17 @@ module.exports = (app) => {
   router.get("/categories", [authJwt], products.findAllCategories)
   router.get("/:product", [authJwt], products.findOne)
   /**Update existing Product */
-  router.patch("/:product", [authJwt], products.findOneAndUpate)
+  router.patch("/bid/:product", [authJwt], products.findOneAndUpate)
+  router.patch(
+    "/subscribe/:product",
+    [authJwt],
+    products.findProductAndUpdateSubscribers
+  )
+  router.patch(
+    "/unsubscribe/:product",
+    [authJwt],
+    products.findProductAndDeleteSubscriber
+  )
 
   /**Create product or category for admin */
   router.post("/product", [authJwt], products.putIProductItem)
