@@ -1,10 +1,11 @@
 const mongoose = require("mongoose")
 const Schema = mongoose.Schema
 
-const UserAutoBidSchema = new Schema({
+const UserSettingsSchema = new Schema({
   userId: {
     type: String,
     require: true,
+    unique: true,
   },
 
   createdOn: {
@@ -17,14 +18,20 @@ const UserAutoBidSchema = new Schema({
   },
   remainingBidAmount: {
     type: Number,
-    require: true,
+  },
+  amountSpent: {
+    type: Number,
   },
   notification: {
     type: Number,
   },
   botIsBiding: {
     type: Boolean,
+    default: false,
   },
 })
 
-module.exports = UserAutoBid = mongoose.model("UserAutoBid", UserAutoBidSchema)
+module.exports = UserSettings = mongoose.model(
+  "UserSettings",
+  UserSettingsSchema
+)

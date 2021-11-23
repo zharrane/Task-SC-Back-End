@@ -11,6 +11,15 @@ const findProduct = async (Model, id) => {
     return null
   }
 }
+const findUserBidSettings = async (Model, id) => {
+  try {
+    const result = await Model.findById({ _id: id })
+    if (result) return result
+    else return null
+  } catch (e) {
+    return null
+  }
+}
 
 /**Find product by id */
 exports.findOne = async (Model, req, res) => {
@@ -27,7 +36,7 @@ exports.findOne = async (Model, req, res) => {
 }
 
 /**Find user auto bid settings */
-exports.findAutoBid = async (Model, req, res) => {
+exports.findUserSettings = async (Model, req, res) => {
   const { username } = req.params
 
   try {
@@ -135,6 +144,47 @@ exports.findProductAndUpdateSubscribers = async (Model, req, res) => {
     return res.status(500).json({ message: "Server Error" })
   }
 }
+/**
+ * Update Product
+ * Delete subscriber
+ */
+exports.findProductAndDeleteSubscriber = async (Model, req, res) => {
+  const { uid } = req
+  const userId = uid.toString()
+  const { product } = req.params
+
+  const user = helpers.findOneById(Users, userId)
+  if (!user) {
+    return res.json({ message: "This user does not exist at all" })
+  }
+
+  try {
+    const tempResult = await findProduct(Model, product)
+    const newSubscribers = []
+    if (!tempResult) {
+      return res.status(404).json({ message: "Product not found" })
+    }
+
+    const subscribers = tempResult.subscribers.filter(
+      (item) => item.userId !== uid
+    )
+
+    const result = await Model.findByIdAndUpdate(
+      { _id: product },
+
+      {
+        subscribers,
+      }
+    )
+
+    if (!result) return res.status(404).json({ message: "Product not found" })
+    return res.json(result)
+  } catch (error) {
+    if (error.kind === "ObjectId")
+      return res.status(404).json({ message: "Product not found" })
+    return res.status(500).json({ message: "Server Error" })
+  }
+}
 
 /** Get all Datas */
 exports.findAllProducts = async (Model, req, res) => {
@@ -171,7 +221,7 @@ exports.findAllProducts = async (Model, req, res) => {
 
     let products = await Model.where({
       productPrice: {
-        $gte: minimum,
+        $lte: minimum,
       },
       category: {
         $in: categoryList,
@@ -206,20 +256,38 @@ exports.findAllProducts = async (Model, req, res) => {
 /**Create or update Auto bid */
 exports.findAutoBidAndUpdate = async (Model, req, res) => {
   const { uid } = req
-  const userId = uid.toString()
+
+  const userId = uid && uid.toString()
   const { autoBidAmount, notification } = req.body
   const options = { upsert: true, new: true, setDefaultsOnInsert: true }
   const update = { expire: new Date() }
-
+  const user = helpers.findOneById(Users, userId)
+  if (!user) {
+    return res.json({ message: "This user does not exist at all" })
+  }
+  if (autoBidAmount > user.balance)
+    return res
+      .status(400)
+      .json({ message: "Cannot set more than your balance" })
+  if (notification > 100) {
+    return res.status(400).json({ message: "Cannot exceed 100%" })
+  }
   try {
+    // const userSettings = await findUserBidSettings(Model, userId)
+    // let remainingBalance = 0
+    // if (userSettings) {
+    //   remainingBalance = userSettings.remainingBidAmount
+    // }
+    // remainingBalance += autoBidAmount
     const result = await Model.findOneAndUpdate(
-      { userId, autoBidAmount, notification },
-      update,
-      options
+      { userId, autoBidAmount, remainingBalance: autoBidAmount, notification },
+      options,
+      update
     )
     if (!result) return res.status(404).json({ message: "No Auto bid found" })
     return res.json(result)
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
