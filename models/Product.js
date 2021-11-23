@@ -11,8 +11,8 @@ const ProductSchenma = new Schema({
     require: true,
   },
   category: {
-    type: String,
-    require: true,
+    type: Schema.Types.ObjectId,
+    ref: "Category",
   },
 
   pictures: [
@@ -22,7 +22,7 @@ const ProductSchenma = new Schema({
       },
     },
   ],
-  startBidDate: {
+  createdOn: {
     type: Date,
     default: Date.now,
   },
@@ -30,25 +30,21 @@ const ProductSchenma = new Schema({
     type: Number,
     require: true,
   },
-  bidStartAmount: {
+  bidStartPrice: {
     type: Number,
     require: true,
   },
-  lastBidAmount: {
+  lastBidPrice: {
     type: Number,
   },
-  //Saving bids of users
-  bids: [
+  winner: {
+    type: String,
+  },
+
+  subscribers: [
     {
-      user: {
+      userId: {
         type: String,
-      },
-      amount: {
-        type: Number,
-      },
-      date: {
-        type: Date,
-        default: Date.now,
       },
     },
   ],

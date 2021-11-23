@@ -28,7 +28,7 @@ const connectToDatabase = async () => {
 }
 //generate signed token maybe will change from jwt later
 const generateToken = (uid) =>
-  jwt.sign(uid, CONSTS.JWT_SECRET, { expiresIn: 600 })
+  jwt.sign(uid, CONSTS.JWT_SECRET, { expiresIn: 86400 })
 
 /**Exports */
 const helpers = {

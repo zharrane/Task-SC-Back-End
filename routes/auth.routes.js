@@ -8,6 +8,5 @@ module.exports = (app) => {
     )
     next()
   })
-
   app.post("/api/auth/signin", controller.signin)
 }

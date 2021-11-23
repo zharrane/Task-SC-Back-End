@@ -24,6 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 require("./routes/auth.routes")(app)
 require("./routes/users.routes")(app)
 require("./routes/products.routes")(app)
+require("./routes/userAutoBid.routes")(app)
 
 const PORT = helpers.CONSTS.PORT || 4000
 app.listen(PORT, () => console.log(`Listening : ${PORT}`))
