@@ -22,7 +22,7 @@ const ProductSchenma = new Schema({
       },
     },
   ],
-  createdOn: {
+  createdAt: {
     type: Date,
     default: Date.now,
   },

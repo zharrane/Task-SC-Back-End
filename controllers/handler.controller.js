@@ -1,12 +1,24 @@
+const Users = require("../dummy/users")
+const { helpers } = require("../helpers")
+
+const findProduct = async (Model, id) => {
+  try {
+    const result = await Model.findById({ _id: id })
+    if (result) return result
+    else return {}
+  } catch (e) {
+    return {}
+  }
+}
+
 /**Find product by id */
 exports.findOne = async (Model, req, res) => {
   const { product } = req.params
   try {
-    const result = await Model.findById({ _id: product })
+    const result = await findProduct(Model, product)
     if (!result) return res.status(404).json({ message: "product not found" })
     return res.json(result)
   } catch (error) {
-    console.error(error)
     if (error.kind === "ObjectId")
       return res.status(404).json({ message: "Product not found" })
     return res.status(500).json({ message: "Server Error" })
@@ -23,8 +35,6 @@ exports.findAutoBid = async (Model, req, res) => {
       return res.status(404).json({ message: "User auto bid not found" })
     return res.json(result)
   } catch (error) {
-    console.error(error)
-
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -38,6 +48,13 @@ exports.findProductAndUpdate = async (Model, req, res) => {
     return res.json({ message: "Missing details" })
 
   try {
+    const tempResult = await findProduct(Model, product)
+    if (tempResult) {
+      if (lastBidPrice < tempResult.lastBidPrice)
+        return res.json({ message: "Cannot bid low or equal to current bid" })
+      if (helpers.findOneByUsername(Users, winner).length)
+        return res.json({ message: "Winner does not exist in users list" })
+    }
     const result = await Model.findByIdAndUpdate(
       { _id: product },
       {
@@ -49,7 +66,6 @@ exports.findProductAndUpdate = async (Model, req, res) => {
     if (!result) return res.status(404).json({ message: "Product not found" })
     return res.json(result)
   } catch (error) {
-    console.error(error)
     if (error.kind === "ObjectId")
       return res.status(404).json({ message: "Product not found" })
     return res.status(500).json({ message: "Server Error" })
@@ -63,10 +79,6 @@ exports.findAutoBidAndUpdate = async (Model, req, res) => {
   const options = { upsert: true, new: true, setDefaultsOnInsert: true }
   const update = { expire: new Date() }
 
-  console.log(username)
-  console.log(autoBidAmount)
-  console.log(notification)
-
   try {
     const result = await Model.findOneAndUpdate(
       { userId: username, autoBidAmount, notification },
@@ -76,7 +88,6 @@ exports.findAutoBidAndUpdate = async (Model, req, res) => {
     if (!result) return res.status(404).json({ message: "No Auto bid found" })
     return res.json(result)
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -115,7 +126,6 @@ exports.findAllProducts = async (Model, req, res) => {
     /**Send */
     if (products) return res.json(result)
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -127,7 +137,6 @@ exports.findAllCategories = async (Model, req, res) => {
     if (categories)
       return res.json({ Total: categories.length, Items: categories })
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -160,7 +169,6 @@ exports.putIProductItem = async (Model, req, res) => {
     const product = await newProduct.save()
     return res.json({ product })
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -176,7 +184,6 @@ exports.putCategoryItem = async (Model, req, res) => {
     const category = await newCategory.save()
     return res.json({ category })
   } catch (error) {
-    console.error(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
