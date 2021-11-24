@@ -10,10 +10,11 @@ exports.findAll = (req, res) => {
 }
 
 exports.findOne = (req, res) => {
-  const { username } = req.params
+  const { uid } = req
+
   if (!username) return res.json({ message: "No username provided" })
   try {
-    res.status(200).json(helpers.filterUser(Users, username))
+    res.status(200).json(helpers.filterUser(Users, uid))
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
