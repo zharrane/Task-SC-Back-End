@@ -1,50 +1,19 @@
 const Users = require("../dummy/users")
 const { helpers } = require("../helpers")
 const Category = require("../models/Category")
-
-const findProduct = async (Model, id) => {
-  try {
-    const result = await Model.findById({ _id: id })
-    if (result) return result
-    else return null
-  } catch (e) {
-    return null
-  }
-}
-const findUserBidSettings = async (Model, id) => {
-  try {
-    const result = await Model.findById({ _id: id })
-    if (result) return result
-    else return null
-  } catch (e) {
-    return null
-  }
-}
+const Bot = require("../helpers/Bot")
+const UserSettings = require("../models/UserSettings")
 
 /**Find product by id */
 exports.findOne = async (Model, req, res) => {
   const { product } = req.params
   try {
-    const result = await findProduct(Model, product)
+    const result = await helpers.findProductById(Model, product)
     if (!result) return res.status(404).json({ message: "product not found" })
     return res.json(result)
   } catch (error) {
     if (error.kind === "ObjectId")
       return res.status(404).json({ message: "Product not found" })
-    return res.status(500).json({ message: "Server Error" })
-  }
-}
-
-/**Find user auto bid settings */
-exports.findUserSettings = async (Model, req, res) => {
-  const { username } = req.params
-
-  try {
-    const result = await Model.findOne({ userId: username })
-    if (!result)
-      return res.status(404).json({ message: "User auto bid not found" })
-    return res.json(result)
-  } catch (error) {
     return res.status(500).json({ message: "Server Error" })
   }
 }
@@ -68,11 +37,22 @@ exports.findProductAndUpdate = async (Model, req, res) => {
   }
 
   try {
-    const tempResult = await findProduct(Model, product)
+    const tempResult = await helpers.findProductById(Model, product)
 
     if (!tempResult) {
       return res.status(404).json({ message: "Product not found" })
     } else {
+      const filtSubscribers = tempResult.subscribers.map((item) => item.userId)
+      const alreadySubscriber = filtSubscribers.includes(uid)
+      // if (alreadySubscriber)
+      //   return res.status(404).json({ message: "You are already subscribed" })
+      let canBid = helpers.checkDuration(
+        tempResult.createdOn,
+        tempResult.duration
+      )
+      if (!canBid) {
+        return res.status(404).json({ message: "Product duration has ended" })
+      }
       if (lastBidPrice <= tempResult["lastBidPrice"]) {
         return res
           .status(404)
@@ -85,6 +65,7 @@ exports.findProductAndUpdate = async (Model, req, res) => {
       { _id: product },
 
       {
+        winner: uid,
         lastBidPrice,
         productPrice: lastBidPrice,
         bids,
@@ -92,6 +73,36 @@ exports.findProductAndUpdate = async (Model, req, res) => {
     )
 
     if (!result) return res.status(404).json({ message: "Product not found" })
+    /** Trigger the BOT */
+    /**Return last subscriber money */
+    const oldUserBid = helpers.returnMoneyToSubscriberSettings(
+      tempResult.bids,
+      tempResult.subscribers
+    )
+    if (oldUserBid) {
+      const { userId, bid } = oldUserBid
+      const userSettings = await helpers.findUserSettingsById(
+        UserSettings,
+        userId
+      )
+      const newRemaining = userSettings.remainingBidAmount + bid
+
+      const newSpent =
+        userSettings.amountSpent === 0
+          ? userSettings.amountSpent
+          : userSettings.amountSpent - bid
+
+      const result = await UserSettings.findOneAndUpdate(
+        { userId },
+        {
+          remainingBidAmount: newRemaining,
+          amountSpent: newSpent,
+        }
+      )
+    }
+    Bot(tempResult, "add-product")
+
+    /** Trigger the BOT */
     return res.json(result)
   } catch (error) {
     if (error.kind === "ObjectId")
@@ -115,19 +126,27 @@ exports.findProductAndUpdateSubscribers = async (Model, req, res) => {
   }
 
   try {
-    const tempResult = await findProduct(Model, product)
-    const newSubscribers = []
+    const tempResult = await helpers.findProductById(Model, product)
+
     if (!tempResult) {
       return res.status(404).json({ message: "Product not found" })
     }
-
+    let canBid = helpers.checkDuration(
+      tempResult.createdOn,
+      tempResult.duration
+    )
+    if (!canBid) {
+      return res.status(404).json({ message: "Product duration has ended" })
+    }
+    const newSubscribers = tempResult.subscribers
     const subscribers = tempResult.subscribers.map((item) => item.userId)
     let includes = subscribers.includes(uid)
 
     if (includes)
       return res.status(400).json({ message: "user is already subscribed" })
-
+    console.log(newSubscribers)
     newSubscribers.push({ userId: uid })
+    console.log(newSubscribers)
     const result = await Model.findByIdAndUpdate(
       { _id: product },
 
@@ -137,6 +156,11 @@ exports.findProductAndUpdateSubscribers = async (Model, req, res) => {
     )
 
     if (!result) return res.status(404).json({ message: "Product not found" })
+    /** Trigger the BOT */
+
+    Bot(tempResult, "add-subscriber")
+
+    /** Trigger the BOT */
     return res.json(result)
   } catch (error) {
     if (error.kind === "ObjectId")
@@ -159,8 +183,7 @@ exports.findProductAndDeleteSubscriber = async (Model, req, res) => {
   }
 
   try {
-    const tempResult = await findProduct(Model, product)
-    const newSubscribers = []
+    const tempResult = await helpers.findProductById(Model, product)
     if (!tempResult) {
       return res.status(404).json({ message: "Product not found" })
     }
@@ -230,7 +253,6 @@ exports.findAllProducts = async (Model, req, res) => {
       .sort()
       .skip(skip)
       .limit(lim)
-
     /**Prepare to send */
     const Counts = products.length
     const ScannedCounts = products.length
@@ -253,45 +275,6 @@ exports.findAllProducts = async (Model, req, res) => {
   }
 }
 
-/**Create or update Auto bid */
-exports.findAutoBidAndUpdate = async (Model, req, res) => {
-  const { uid } = req
-
-  const userId = uid && uid.toString()
-  const { autoBidAmount, notification } = req.body
-  const options = { upsert: true, new: true, setDefaultsOnInsert: true }
-  const update = { expire: new Date() }
-  const user = helpers.findOneById(Users, userId)
-  if (!user) {
-    return res.json({ message: "This user does not exist at all" })
-  }
-  if (autoBidAmount > user.balance)
-    return res
-      .status(400)
-      .json({ message: "Cannot set more than your balance" })
-  if (notification > 100) {
-    return res.status(400).json({ message: "Cannot exceed 100%" })
-  }
-  try {
-    // const userSettings = await findUserBidSettings(Model, userId)
-    // let remainingBalance = 0
-    // if (userSettings) {
-    //   remainingBalance = userSettings.remainingBidAmount
-    // }
-    // remainingBalance += autoBidAmount
-    const result = await Model.findOneAndUpdate(
-      { userId, autoBidAmount, remainingBalance: autoBidAmount, notification },
-      options,
-      update
-    )
-    if (!result) return res.status(404).json({ message: "No Auto bid found" })
-    return res.json(result)
-  } catch (error) {
-    console.log(error)
-    return res.status(500).json({ message: "Server Error" })
-  }
-}
-
 /** Get all Categories */
 exports.findAllCategories = async (Model, req, res) => {
   try {
@@ -306,7 +289,7 @@ exports.findAllCategories = async (Model, req, res) => {
 /** For admin purposes */
 /** For admin purposes */
 /** For admin purposes */
-exports.putIProductItem = async (Model, req, res) => {
+exports.createProduct = async (Model, req, res) => {
   const { title, description, category, duration, bidStartPrice, pictures } =
     req.body
   console.log(bidStartPrice)
@@ -330,15 +313,13 @@ exports.putIProductItem = async (Model, req, res) => {
       pictures,
     })
     const product = await newProduct.save()
-    console.log(product)
     return res.json({ product })
   } catch (error) {
-    console.log(error)
     return res.status(500).json({ message: "Server Error" })
   }
 }
 
-exports.putCategoryItem = async (Model, req, res) => {
+exports.createCategory = async (Model, req, res) => {
   const { categoryTitle } = req.body
 
   if (!categoryTitle) return res.json({ message: "Missing details" })

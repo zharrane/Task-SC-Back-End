@@ -28,9 +28,9 @@ exports.findAllCategories = (req, res) => {
 ///////////////////////// ADMIN //////////////////////////////
 // No find one because this is slowly mutable and small
 exports.putCategoryItem = (req, res) => {
-  handler.putCategoryItem(Category, req, res)
+  handler.createCategory(Category, req, res)
 }
 
 exports.putIProductItem = (req, res) => {
-  handler.putIProductItem(Products, req, res)
+  handler.createProduct(Products, req, res)
 }

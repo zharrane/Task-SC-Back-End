@@ -41,6 +41,8 @@ const ProductSchenma = new Schema({
     type: Number,
     require: true,
   },
+
+  //This should be user ID
   winner: {
     type: String,
   },

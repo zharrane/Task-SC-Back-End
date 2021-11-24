@@ -10,6 +10,11 @@ const {
   filterUsers,
   filterUser,
   findOneById,
+  findUserSettingsById,
+  findProductById,
+  compareAndSort,
+  checkDuration,
+  returnMoneyToSubscriberSettings,
 } = require("./utilities")
 
 const CONSTS = {
@@ -46,5 +51,10 @@ const helpers = {
   filterUsers,
   filterUser,
   findOneById,
+  findUserSettingsById,
+  findProductById,
+  compareAndSort,
+  checkDuration,
+  returnMoneyToSubscriberSettings,
 }
 module.exports = { helpers }
