@@ -44,8 +44,8 @@ exports.findProductAndUpdate = async (Model, req, res) => {
     } else {
       const filtSubscribers = tempResult.subscribers.map((item) => item.userId)
       const alreadySubscriber = filtSubscribers.includes(uid)
-      // if (alreadySubscriber)
-      //   return res.status(404).json({ message: "You are already subscribed" })
+      if (alreadySubscriber)
+        return res.status(404).json({ message: "You are already subscribed" })
       let canBid = helpers.checkDuration(
         tempResult.createdOn,
         tempResult.duration
@@ -92,7 +92,7 @@ exports.findProductAndUpdate = async (Model, req, res) => {
           ? userSettings.amountSpent
           : userSettings.amountSpent - bid
 
-      const result = await UserSettings.findOneAndUpdate(
+      await UserSettings.findOneAndUpdate(
         { userId },
         {
           remainingBidAmount: newRemaining,
@@ -100,9 +100,10 @@ exports.findProductAndUpdate = async (Model, req, res) => {
         }
       )
     }
-    Bot(tempResult, "add-product")
+    console.log("BOT BOT BOT")
+    await Bot(tempResult, "add-product")
+    console.log("BOT BOT BOT")
 
-    /** Trigger the BOT */
     return res.json(result)
   } catch (error) {
     if (error.kind === "ObjectId")

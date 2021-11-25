@@ -31,13 +31,7 @@ const challengeAndWinner = async (subscribers, price) => {
   // Destruct userId and remaining bid amout from user settings
   let usersSettings = await Promise.all(
     newUsers.map(async (item) => {
-      let setting
-      let counter = 0
-      do {
-        setting = await helpers.findUserSettingsById(UserSettings, item)
-        counter++
-        console.log(`Try : ${counter}`)
-      } while (setting.botIsBiding)
+      let setting = await helpers.findUserSettingsById(UserSettings, item)
 
       const { remainingBidAmount, userId, amountSpent, ...rest } = setting
 
@@ -86,6 +80,7 @@ const challengeAndWinner = async (subscribers, price) => {
 }
 
 const Bot = async (product = [], calledFrom) => {
+  console.log("Bot called")
   switch (calledFrom) {
     case "add-product":
     case "add-subscriber":
