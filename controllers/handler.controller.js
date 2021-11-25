@@ -211,7 +211,8 @@ exports.findProductAndDeleteSubscriber = async (Model, req, res) => {
 
 /** Get all Datas */
 exports.findAllProducts = async (Model, req, res) => {
-  const { categories, minimumPrice } = req.body
+  // const { categories, minimumPrice } = req.body
+  const { categories, minimumPrice } = req.params
   const { page, limit } = req.query
 
   const lim = limit ? +limit : 15
