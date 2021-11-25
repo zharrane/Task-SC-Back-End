@@ -26,7 +26,12 @@ require("./routes/users.routes")(app)
 require("./routes/products.routes")(app)
 require("./routes/userSettings.routes")(app)
 app.get("*", (req, res) => {
-  res.status(404).json({ message: "Where are you going ?" })
+  res
+    .status(404)
+    .json({
+      message:
+        "Where are you going ? Maybe you should go for /api route and proceed",
+    })
 })
 const PORT = helpers.CONSTS.PORT || 4000
 app.listen(PORT, () => console.log(`Listening : ${PORT}`))
