@@ -218,7 +218,7 @@ exports.findAllProducts = async (Model, req, res) => {
   const pg = page ? +page : 1
   const startIndex = (pg - 1) * lim
   const skip = pg > 0 ? startIndex : 0
-  const minimum = minimumPrice ? minimumPrice : 0
+  const minimum = minimumPrice ? minimumPrice : 1000000000
 
   try {
     let categoryList = await Category.find()
