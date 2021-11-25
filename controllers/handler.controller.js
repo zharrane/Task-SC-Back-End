@@ -212,7 +212,7 @@ exports.findProductAndDeleteSubscriber = async (Model, req, res) => {
 /** Get all Datas */
 exports.findAllProducts = async (Model, req, res) => {
   // const { categories, minimumPrice } = req.body
-  const { categories, minimumPrice } = req.params
+  const { categories, minimumPrice } = req.body
   const { page, limit } = req.query
 
   const lim = limit ? +limit : 15
@@ -239,9 +239,8 @@ exports.findAllProducts = async (Model, req, res) => {
       return res
         .status(404)
         .json({ message: "One of the category is not valid" })
-
-    categoryList = categories && includes ? categories : categoryList
-    console.log(categoryList)
+    categoryList =
+      categories.length === 0 && includes ? categoryList : categories
 
     let products = await Model.where({
       productPrice: {

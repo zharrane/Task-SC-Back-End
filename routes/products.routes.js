@@ -5,7 +5,7 @@ module.exports = (app) => {
   var router = require("express").Router()
 
   /**Get */
-  router.get("/", [authJwt], products.findAllProducts)
+  router.post("/", [authJwt], products.findAllProducts)
   router.get("/categories", [authJwt], products.findAllCategories)
   router.get("/:product", [authJwt], products.findOne)
   /**Update existing Product */
