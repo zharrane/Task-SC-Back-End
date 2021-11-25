@@ -14,7 +14,7 @@ const filterUsers = (array) => {
 }
 
 const filterUser = (array, element) => {
-  return filterUsers(array).find((e) => e.username === element)
+  return filterUsers(array).find((e) => e.id === element)
 }
 
 function compareAndSort(a, b) {
